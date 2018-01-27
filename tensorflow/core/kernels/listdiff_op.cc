@@ -43,15 +43,6 @@ class ListDiffOp : public OpKernel {
     OP_REQUIRES(context, TensorShapeUtils::IsVector(y.shape()),
                 errors::InvalidArgument("y should be a 1D vector."));
 
-    const auto Tx = x.vec<T>();
-    const size_t x_size = Tx.size();
-    const auto Ty = y.vec<T>();
-    const size_t y_size = Ty.size();
-
-    OP_REQUIRES(context, x_size < std::numeric_limits<int32>::max(),
-                errors::InvalidArgument("x too large for int32 indexing"));
-
-    std::unordered_set<T> y_set;
     y_set.reserve(y_size);
     for (size_t i = 0; i < y_size; ++i) {
       y_set.insert(Ty(i));
