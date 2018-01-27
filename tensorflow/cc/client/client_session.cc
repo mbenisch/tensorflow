@@ -86,6 +86,7 @@ Status ClientSession::Run(const FeedType& inputs,
                           const std::vector<Output>& fetch_outputs,
                           const std::vector<Operation>& run_outputs,
                           std::vector<Tensor>* outputs) const {
+  //COMMENT
   return Run(RunOptions(), inputs, fetch_outputs, run_outputs, outputs,
              nullptr);
 }
