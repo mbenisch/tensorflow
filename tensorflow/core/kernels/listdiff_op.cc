@@ -43,6 +43,55 @@ class ListDiffOp : public OpKernel {
     OP_REQUIRES(context, TensorShapeUtils::IsVector(y.shape()),
                 errors::InvalidArgument("y should be a 1D vector."));
 
+    y_set.reserve(y_size);
+    for (size_t i = 0; i < y_size; ++i) {
+      y_set.insert(Ty(i));
+    }
+
+    // Compute the size of the output.
+
+    int64 out_size = 0;
+    for (size_t i = 0; i < x_size; ++i) {
+      if (y_set.count(Tx(i)) == 0) {
+        ++out_size;
+      }
+    }
+
+    // Allocate and populate outputs.
+    Tensor* out = nullptr;
+    OP_REQUIRES_OK(context, context->allocate_output(0, {out_size}, &out));
+    auto Tout = out->vec<T>();
+
+    Tensor* indices = nullptr;
+    OP_REQUIRES_OK(context, context->allocate_output(1, {out_size}, &indices));
+    auto Tindices = indices->vec<Tidx>();
+
+    for (Tidx i = 0, p = 0; i < static_cast<Tidx>(x_size); ++i) {
+      if (y_set.count(Tx(i)) == 0) {
+        OP_REQUIRES(context, p < out_size,
+                    errors::InvalidArgument(
+                        "Tried to set output index ", p,
+                        " when output Tensor only had ", out_size,
+                        " elements. Check that your "
+                        "input tensors are not being concurrently mutated."));
+        Tout(p) = Tx(i);
+        Tindices(p) = i;
+        p++;
+      }
+    }
+  }
+
+  void Compute(OpKernelContext* context) override {
+    const Tensor& x = context->input(0);
+    const Tensor& y = context->input(1);
+    const Tensor& z = context->input(2);
+
+    OP_REQUIRES(context, TensorShapeUtils::IsVector(x.shape()),
+                errors::InvalidArgument("x should be a 1D vector."));
+
+    OP_REQUIRES(context, TensorShapeUtils::IsVector(y.shape()),
+                errors::InvalidArgument("y should be a 1D vector."));
+
     const auto Tx = x.vec<T>();
     const size_t x_size = Tx.size();
     const auto Ty = y.vec<T>();
